@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생물 5계 분류 탐험</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0f4f8;
+            touch-action: manipulation;
+        }
+
+        .kingdom-slot {
+            transition: all 0.3s ease;
+            min-height: 120px;
+        }
+
+        .kingdom-slot.drag-over {
+            background-color: #e2e8f0;
+            transform: scale(1.02);
+            border: 2px dashed #4a5568;
+        }
+
+        .card-animation {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+        }
+
+        .card-animation:hover {
+            transform: translateY(-5px);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        @keyframes success-pulse {
+            0% { background-color: transparent; }
+            50% { background-color: #48bb78; }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-indigo-700 mb-2">🌿 생물 5계 분류 탐험</h1>
+            <p class="text-slate-600">생물 카드의 특징을 분석하여 알맞은 분류군으로 드래그하세요! (틀리면 한 번 더 기회가 있어요)</p>
+            
+            <div class="mt-6 flex justify-center gap-8 items-center bg-white p-4 rounded-full shadow-sm inline-flex mx-auto">
+                <div class="text-lg">분류 진행: <span id="completed-count" class="font-bold text-indigo-600">0</span> / 20</div>
+                <div class="text-lg">현재 점수: <span id="score" class="font-bold text-green-600">0</span></div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12">
+            <!-- Kingdom Buckets -->
+            <div id="monera" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-amber-500 text-center" data-kingdom="원핵생물계">
+                <h2 class="font-bold text-amber-700 mb-1">원핵생물계</h2>
+                <p class="text-xs text-slate-500 mb-3">핵막이 없는 세포 구조</p>
+                <div class="flex flex-wrap justify-center gap-1" id="slot-monera"></div>
+            </div>
+            
+            <div id="protista" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-blue-400 text-center" data-kingdom="원생생물계">
+                <h2 class="font-bold text-blue-700 mb-1">원생생물계</h2>
+                <p class="text-xs text-slate-500 mb-3">핵이 있는 단순한 구조</p>
+                <div class="flex flex-wrap justify-center gap-1" id="slot-protista"></div>
+            </div>
+
+            <div id="fungi" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-purple-400 text-center" data-kingdom="균계">
+                <h2 class="font-bold text-purple-700 mb-1">균계</h2>
+                <p class="text-xs text-slate-500 mb-3">흡수 영양 방식, 포자 번식</p>
+                <div class="flex flex-wrap justify-center gap-1" id="slot-fungi"></div>
+            </div>
+
+            <div id="plantae" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-emerald-500 text-center" data-kingdom="식물계">
+                <h2 class="font-bold text-emerald-700 mb-1">식물계</h2>
+                <p class="text-xs text-slate-500 mb-3">광합성을 하는 다세포 생물</p>
+                <div class="flex flex-wrap justify-center gap-1" id="slot-plantae"></div>
+            </div>
+
+            <div id="animalia" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-rose-400 text-center" data-kingdom="동물계">
+                <h2 class="font-bold text-rose-700 mb-1">동물계</h2>
+                <p class="text-xs text-slate-500 mb-3">먹이 섭취 및 이동성</p>
+                <div class="flex flex-wrap justify-center gap-1" id="slot-animalia"></div>
+            </div>
+        </div>
+
+        <!-- Current Card Display -->
+        <div class="flex justify-center items-center relative min-h-[400px]">
+            <div id="game-complete" class="hidden text-center p-10 bg-white rounded-3xl shadow-xl max-w-md">
+                <div class="text-6xl mb-4">🏆</div>
+                <h2 class="text-2xl font-bold mb-2">탐험 완료!</h2>
+                <p id="final-result" class="mb-6"></p>
+                <button onclick="location.reload()" class="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition">다시 도전하기</button>
+            </div>
+
+            <div id="card-container" class="relative w-80 h-[450px]">
+                <!-- Cards will be injected here via JS -->
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div class="mt-12 lg:hidden flex flex-wrap justify-center gap-2">
+            <button onclick="mobileClassify('원핵생물계')" class="bg-amber-100 px-4 py-2 rounded-lg text-amber-800 font-bold border border-amber-300">원핵</button>
+            <button onclick="mobileClassify('원생생물계')" class="bg-blue-100 px-4 py-2 rounded-lg text-blue-800 font-bold border border-blue-300">원생</button>
+            <button onclick="mobileClassify('균계')" class="bg-purple-100 px-4 py-2 rounded-lg text-purple-800 font-bold border border-purple-300">균계</button>
+            <button onclick="mobileClassify('식물계')" class="bg-emerald-100 px-4 py-2 rounded-lg text-emerald-800 font-bold border border-emerald-300">식물</button>
+            <button onclick="mobileClassify('동물계')" class="bg-rose-100 px-4 py-2 rounded-lg text-rose-800 font-bold border border-rose-300">동물</button>
+        </div>
+    </div>
+
+    <!-- Message Toast -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
+
+    <script>
+        const speciesData = [
+            // 원핵생물계 (4)
+            { id: 1, name: "대장균", kingdom: "원핵생물계", icon: "🧬", feature: "핵막이 없는 단세포로 이루어져 있으며, 사람의 장 속에 살면서 이분법으로 빠르게 증식합니다." },
+            { id: 2, name: "젖산균", kingdom: "원핵생물계", icon: "🧬", feature: "유전 물질이 핵막에 둘러싸여 있지 않으며, 당을 분해하여 젖산을 만드는 이로운 생물입니다." },
+            { id: 3, name: "남세균", kingdom: "원핵생물계", icon: "🧪", feature: "핵이 없는 단순한 구조이지만, 엽록체 없이도 광합성을 하여 산소를 배출할 수 있습니다." },
+            { id: 4, name: "포도상구균", kingdom: "원핵생물계", icon: "🧫", feature: "뚜렷한 핵이 보이지 않는 단세포 구조이며, 세포들이 포도송이처럼 뭉쳐 있는 특징이 있습니다." },
+            
+            // 원생생물계 (4)
+            { id: 5, name: "아메바", kingdom: "원생생물계", icon: "💧", feature: "핵을 가진 단세포로, 몸의 모양을 자유롭게 바꾸는 위족을 이용해 이동하며 먹이를 감싸 섭취합니다." },
+            { id: 6, name: "짚신벌레", kingdom: "원생생물계", icon: "👞", feature: "핵이 있는 하나의 세포로 이루어져 있고, 몸 표면의 수많은 섬모를 움직여 물속을 헤엄칩니다." },
+            { id: 7, name: "미역", kingdom: "원생생물계", icon: "🌿", feature: "다세포로 자라지만 뿌리, 줄기, 잎의 구분이 뚜렷하지 않고 바다에서 광합성을 하며 살아갑니다." },
+            { id: 8, name: "유글레나", kingdom: "원생생물계", icon: "🍃", feature: "핵이 있으며 편모로 이동합니다. 빛이 있을 땐 광합성을 하고 빛이 없으면 먹이를 먹기도 합니다." },
+
+            // 균계 (4)
+            { id: 9, name: "표고버섯", kingdom: "균계", icon: "🍄", feature: "광합성을 하지 못하며, 실 모양의 균사로 유기물을 분해하여 흡수하고 포자를 만들어 번식합니다." },
+            { id: 10, name: "효모", kingdom: "균계", icon: "🍞", feature: "단세포로 존재하며 산소가 없는 곳에서 당을 분해하여 알코올과 이산화 탄소를 만드는 발효 작용을 합니다." },
+            { id: 11, name: "검은빵곰팡이", kingdom: "균계", icon: "🕸️", feature: "빵과 같은 유기물 위에 실 같은 조직을 퍼뜨려 영양분을 얻으며, 끝에 검은색 포자낭을 형성합니다." },
+            { id: 12, name: "송이버섯", kingdom: "균계", icon: "🍄", feature: "소나무 뿌리 주변에서 실 모양의 조직을 뻗어 영양을 주고받으며 공생하는 다세포 생물입니다." },
+
+            // 식물계 (4)
+            { id: 13, name: "해바라기", kingdom: "식물계", icon: "🌻", feature: "세포벽이 있는 다세포 생물이며, 엽록체에서 광합성을 하여 스스로 양분을 만들고 꽃을 피웁니다." },
+            { id: 14, name: "우산이끼", kingdom: "식물계", icon: "🌱", feature: "광합성을 하지만 물과 양분을 운반하는 관다발이 발달하지 않아 습한 곳에서 낮게 자랍니다." },
+            { id: 15, name: "고사리", kingdom: "식물계", icon: "🌿", feature: "뿌리, 줄기, 잎이 뚜렷하고 관다발이 발달했지만, 꽃을 피우지 않고 잎 뒷면의 포자로 번식합니다." },
+            { id: 16, name: "소나무", kingdom: "식물계", icon: "🌲", feature: "광합성을 하는 다세포 생물로, 씨방이 없어 밑씨가 겉으로 드러나는 씨앗을 만들어 번식합니다." },
+
+            // 동물계 (4)
+            { id: 17, name: "호랑이", kingdom: "동물계", icon: "🐯", feature: "다른 생물을 먹어 에너지를 얻으며, 근육과 신경계가 발달하여 빠르게 움직이고 반응합니다." },
+            { id: 18, name: "나비", kingdom: "동물계", icon: "🦋", feature: "몸이 여러 마디로 되어 있고, 날개와 다리를 이용해 이동하며 꽃의 꿀을 먹고 사는 다세포 생물입니다." },
+            { id: 19, name: "해파리", kingdom: "동물계", icon: "🪼", feature: "몸에 근육과 신경망이 있어 물속을 떠다니며, 촉수로 작은 생물을 잡아먹는 단순한 구조의 생물입니다." },
+            { id: 20, name: "지렁이", kingdom: "동물계", icon: "🪱", feature: "흙 속의 유기물을 먹고 살며, 몸이 고리 모양의 마디로 이루어져 근육을 수축하며 이동합니다." }
+        ];
+
+        let deck = [];
+        let score = 0;
+        let completed = 0;
+        let currentCard = null;
+        let isSecondTry = false; 
+
+        const cardContainer = document.getElementById('card-container');
+        const scoreDisplay = document.getElementById('score');
+        const completedDisplay = document.getElementById('completed-count');
+        const toast = document.getElementById('toast');
+
+        function initGame() {
+            deck = [...speciesData].sort(() => Math.random() - 0.5);
+            renderNextCard();
+            setupDragAndDrop();
+        }
+
+        function renderNextCard() {
+            if (deck.length === 0) {
+                showGameComplete();
+                return;
+            }
+
+            currentCard = deck.pop();
+            isSecondTry = false;
+            cardContainer.innerHTML = '';
+
+            const card = document.createElement('div');
+            card.className = "absolute inset-0 bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center justify-between border border-slate-200 card-animation cursor-grab active:cursor-grabbing";
+            card.draggable = true;
+            card.id = `card-${currentCard.id}`;
+
+            updateCardContent(card);
+
+            card.addEventListener('dragstart', (e) => {
+                card.classList.add('opacity-50');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('opacity-50');
+            });
+
+            cardContainer.appendChild(card);
+        }
+
+        function updateCardContent(card) {
+            card.innerHTML = `
+                <div class="w-full flex justify-between items-center text-xs font-mono">
+                    <span class="text-slate-400">ID: #${currentCard.id.toString().padStart(2, '0')}</span>
+                    ${isSecondTry ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">재도전 기회!</span>' : ''}
+                </div>
+                <div class="text-7xl my-4 p-6 bg-slate-50 rounded-full border border-slate-100 transition-transform ${isSecondTry ? 'scale-90' : ''}">${currentCard.icon}</div>
+                <div class="text-center overflow-y-auto px-2">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-2">${currentCard.name}</h3>
+                    <p class="text-slate-600 leading-relaxed text-sm">${currentCard.feature}</p>
+                </div>
+                <div class="w-full mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium">
+                    알맞은 분류군으로 드래그하세요
+                </div>
+            `;
+        }
+
+        function setupDragAndDrop() {
+            const slots = document.querySelectorAll('.kingdom-slot');
+            
+            slots.forEach(slot => {
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    slot.classList.add('drag-over');
+                });
+
+                slot.addEventListener('dragleave', () => {
+                    slot.classList.remove('drag-over');
+                });
+
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('drag-over');
+                    const targetKingdom = slot.dataset.kingdom;
+                    processClassification(targetKingdom);
+                });
+            });
+        }
+
+        function processClassification(targetKingdom) {
+            const isCorrect = targetKingdom === currentCard.kingdom;
+            const cardEl = document.querySelector('.card-animation');
+            
+            if (isCorrect) {
+                const points = isSecondTry ? 5 : 10;
+                score += points;
+                showToast(`✅ 정답! (+${points}점)`, "bg-green-500");
+                addToSlot(currentCard);
+                
+                cardEl.style.transform = 'scale(0) translateY(-100px)';
+                cardEl.style.opacity = '0';
+                
+                completed++;
+                updateStats();
+                setTimeout(renderNextCard, 500);
+            } else {
+                if (!isSecondTry) {
+                    isSecondTry = true;
+                    showToast("❌ 틀렸습니다. 다시 한번 생각해보세요!", "bg-amber-500");
+                    
+                    cardEl.classList.add('shake');
+                    setTimeout(() => {
+                        cardEl.classList.remove('shake');
+                        updateCardContent(cardEl);
+                    }, 500);
+                } else {
+                    showToast(`❌ 아쉽네요! 정답은 [${currentCard.kingdom}]입니다.`, "bg-rose-500");
+                    
+                    cardEl.style.transform = 'translateX(100vw) rotate(20deg)';
+                    cardEl.style.opacity = '0';
+                    
+                    completed++;
+                    updateStats();
+                    setTimeout(renderNextCard, 500);
+                }
+            }
+        }
+
+        function mobileClassify(kingdom) {
+            if (!currentCard) return;
+            processClassification(kingdom);
+        }
+
+        function addToSlot(species) {
+            const slotId = {
+                "원핵생물계": "slot-monera",
+                "원생생물계": "slot-protista",
+                "균계": "slot-fungi",
+                "식물계": "slot-plantae",
+                "동물계": "slot-animalia"
+            }[species.kingdom];
+
+            const item = document.createElement('div');
+            item.className = "bg-slate-100 text-[10px] px-2 py-0.5 rounded border border-slate-200 animate-bounce";
+            item.innerText = species.name;
+            document.getElementById(slotId).appendChild(item);
+        }
+
+        function updateStats() {
+            scoreDisplay.innerText = score;
+            completedDisplay.innerText = completed;
+        }
+
+        function showToast(msg, colorClass) {
+            toast.innerText = msg;
+            toast.className = `fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold transition-opacity duration-300 pointer-events-none z-50 ${colorClass} opacity-100`;
+            
+            setTimeout(() => {
+                toast.classList.replace('opacity-100', 'opacity-0');
+            }, 2000);
+        }
+
+        function showGameComplete() {
+            cardContainer.classList.add('hidden');
+            const completeEl = document.getElementById('game-complete');
+            completeEl.classList.remove('hidden');
+            
+            let message = "";
+            if (score >= 180) message = "완벽한 분류입니다! 생물학적 통찰력이 뛰어나시네요.";
+            else if (score >= 140) message = "훌륭합니다! 대부분의 생물을 정확히 분류하셨어요.";
+            else message = "생물의 특징을 다시 한번 복습해보면 더 높은 점수를 얻을 수 있을 거예요!";
+            
+            document.getElementById('final-result').innerHTML = `최종 점수: <span class="text-indigo-600 font-bold">${score}</span>점<br><span class="text-sm text-slate-500">${message}</span>`;
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
