@@ -11,26 +11,33 @@
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background-color: #f0f4f8;
-            touch-action: manipulation;
+            touch-action: none; /* 패드에서 기본 스크롤/바운스 방지하여 드래그 최적화 */
+            overflow-x: hidden;
         }
 
         .kingdom-slot {
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             min-height: 120px;
+        }
+
+        /* 터치 및 마우스 호버 시 피드백 강화 */
+        .kingdom-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .kingdom-slot:active {
+            transform: scale(0.98);
         }
 
         .kingdom-slot.drag-over {
             background-color: #e2e8f0;
-            transform: scale(1.02);
+            transform: scale(1.04);
             border: 2px dashed #4a5568;
         }
 
         .card-animation {
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
-        }
-
-        .card-animation:hover {
-            transform: translateY(-5px);
+            transition: transform 0.1s ease, opacity 0.3s ease;
         }
 
         .shake {
@@ -43,87 +50,80 @@
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
-
-        @keyframes success-pulse {
-            0% { background-color: transparent; }
-            50% { background-color: #48bb78; }
-            100% { background-color: transparent; }
-        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-50 text-slate-800 select-none">
 
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto px-4 py-6">
         <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-indigo-700 mb-2">🌿 생물 5계 분류 탐험</h1>
-            <p class="text-slate-600">생물 카드의 특징을 분석하여 알맞은 분류군으로 드래그하세요! (틀리면 한 번 더 기회가 있어요)</p>
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700 mb-2">🌿 생물 5계 분류 탐험</h1>
+            <p class="text-slate-600 text-sm md:text-base">
+                카드를 원하는 분류군으로 <span class="font-bold text-indigo-600">드래그</span>하거나, 
+                상단의 <span class="font-bold text-indigo-600">분류군 박스를 직접 터치</span>하여 분류하세요!
+            </p>
             
-            <div class="mt-6 flex justify-center gap-8 items-center bg-white p-4 rounded-full shadow-sm inline-flex mx-auto">
-                <div class="text-lg">분류 진행: <span id="completed-count" class="font-bold text-indigo-600">0</span> / 20</div>
-                <div class="text-lg">현재 점수: <span id="score" class="font-bold text-green-600">0</span></div>
+            <div class="mt-4 flex justify-center gap-6 items-center bg-white p-3 rounded-full shadow-sm inline-flex mx-auto">
+                <div class="text-sm md:text-base">분류 진행: <span id="completed-count" class="font-bold text-indigo-600">0</span> / 20</div>
+                <div class="text-sm md:text-base">현재 점수: <span id="score" class="font-bold text-green-600">0</span></div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-12">
-            <!-- Kingdom Buckets -->
-            <div id="monera" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-amber-500 text-center" data-kingdom="원핵생물계">
-                <h2 class="font-bold text-amber-700 mb-1">원핵생물계</h2>
-                <p class="text-xs text-slate-500 mb-3">핵막이 없는 세포 구조</p>
+        <!-- Kingdom Buckets (이제 클릭/탭이 가능하도록 설계됨) -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+            <div id="monera" class="kingdom-slot bg-white p-3 rounded-xl shadow-md border-t-4 border-amber-500 text-center cursor-pointer active:bg-amber-50" data-kingdom="원핵생물계">
+                <h2 class="font-bold text-amber-700 text-sm md:text-base">원핵생물계</h2>
+                <p class="text-[10px] text-slate-500 mb-2">핵막이 없는 세포 구조</p>
                 <div class="flex flex-wrap justify-center gap-1" id="slot-monera"></div>
             </div>
             
-            <div id="protista" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-blue-400 text-center" data-kingdom="원생생물계">
-                <h2 class="font-bold text-blue-700 mb-1">원생생물계</h2>
-                <p class="text-xs text-slate-500 mb-3">핵이 있는 단순한 구조</p>
+            <div id="protista" class="kingdom-slot bg-white p-3 rounded-xl shadow-md border-t-4 border-blue-400 text-center cursor-pointer active:bg-blue-50" data-kingdom="원생생물계">
+                <h2 class="font-bold text-blue-700 text-sm md:text-base">원생생물계</h2>
+                <p class="text-[10px] text-slate-500 mb-2">핵이 있는 단순한 구조</p>
                 <div class="flex flex-wrap justify-center gap-1" id="slot-protista"></div>
             </div>
 
-            <div id="fungi" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-purple-400 text-center" data-kingdom="균계">
-                <h2 class="font-bold text-purple-700 mb-1">균계</h2>
-                <p class="text-xs text-slate-500 mb-3">흡수 영양 방식, 포자 번식</p>
+            <div id="fungi" class="kingdom-slot bg-white p-3 rounded-xl shadow-md border-t-4 border-purple-400 text-center cursor-pointer active:bg-purple-50" data-kingdom="균계">
+                <h2 class="font-bold text-purple-700 text-sm md:text-base">균계</h2>
+                <p class="text-[10px] text-slate-500 mb-2">흡수 영양, 포자 번식</p>
                 <div class="flex flex-wrap justify-center gap-1" id="slot-fungi"></div>
             </div>
 
-            <div id="plantae" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-emerald-500 text-center" data-kingdom="식물계">
-                <h2 class="font-bold text-emerald-700 mb-1">식물계</h2>
-                <p class="text-xs text-slate-500 mb-3">광합성을 하는 다세포 생물</p>
+            <div id="plantae" class="kingdom-slot bg-white p-3 rounded-xl shadow-md border-t-4 border-emerald-500 text-center cursor-pointer active:bg-emerald-50" data-kingdom="식물계">
+                <h2 class="font-bold text-emerald-700 text-sm md:text-base">식물계</h2>
+                <p class="text-[10px] text-slate-500 mb-2">광합성을 하는 다세포 생물</p>
                 <div class="flex flex-wrap justify-center gap-1" id="slot-plantae"></div>
             </div>
 
-            <div id="animalia" class="kingdom-slot bg-white p-4 rounded-xl shadow-md border-t-4 border-rose-400 text-center" data-kingdom="동물계">
-                <h2 class="font-bold text-rose-700 mb-1">동물계</h2>
-                <p class="text-xs text-slate-500 mb-3">먹이 섭취 및 이동성</p>
+            <div id="animalia" class="kingdom-slot bg-white p-3 rounded-xl shadow-md border-t-4 border-rose-400 text-center cursor-pointer active:bg-rose-50" data-kingdom="동물계">
+                <h2 class="font-bold text-rose-700 text-sm md:text-base">동물계</h2>
+                <p class="text-[10px] text-slate-500 mb-2">먹이 섭취 및 이동성</p>
                 <div class="flex flex-wrap justify-center gap-1" id="slot-animalia"></div>
             </div>
         </div>
 
         <!-- Current Card Display -->
-        <div class="flex justify-center items-center relative min-h-[400px]">
-            <div id="game-complete" class="hidden text-center p-10 bg-white rounded-3xl shadow-xl max-w-md">
+        <div class="flex justify-center items-center relative min-h-[380px] md:min-h-[420px]">
+            <div id="game-complete" class="hidden text-center p-8 bg-white rounded-3xl shadow-xl max-w-md mx-4 z-10">
                 <div class="text-6xl mb-4">🏆</div>
                 <h2 class="text-2xl font-bold mb-2">탐험 완료!</h2>
                 <p id="final-result" class="mb-6"></p>
                 <button onclick="location.reload()" class="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition">다시 도전하기</button>
             </div>
 
-            <div id="card-container" class="relative w-80 h-[450px]">
+            <div id="card-container" class="relative w-72 h-[380px] md:w-80 md:h-[400px]">
                 <!-- Cards will be injected here via JS -->
             </div>
         </div>
 
-        <!-- Mobile Controls -->
-        <div class="mt-12 lg:hidden flex flex-wrap justify-center gap-2">
-            <button onclick="mobileClassify('원핵생물계')" class="bg-amber-100 px-4 py-2 rounded-lg text-amber-800 font-bold border border-amber-300">원핵</button>
-            <button onclick="mobileClassify('원생생물계')" class="bg-blue-100 px-4 py-2 rounded-lg text-blue-800 font-bold border border-blue-300">원생</button>
-            <button onclick="mobileClassify('균계')" class="bg-purple-100 px-4 py-2 rounded-lg text-purple-800 font-bold border border-purple-300">균계</button>
-            <button onclick="mobileClassify('식물계')" class="bg-emerald-100 px-4 py-2 rounded-lg text-emerald-800 font-bold border border-emerald-300">식물</button>
-            <button onclick="mobileClassify('동물계')" class="bg-rose-100 px-4 py-2 rounded-lg text-rose-800 font-bold border border-rose-300">동물</button>
+        <!-- Touch Hint for Mobile/Pads -->
+        <div class="text-center text-xs text-slate-400 mt-6">
+            💡 패드 사용 시 카드를 드래그하거나 위의 오색 분류군 박스를 가볍게 탭해보세요!
         </div>
     </div>
 
     <!-- Message Toast -->
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold opacity-0 transition-opacity duration-300 pointer-events-none z-50 text-center text-sm shadow-lg"></div>
 
     <script>
         const speciesData = [
@@ -172,7 +172,7 @@
         function initGame() {
             deck = [...speciesData].sort(() => Math.random() - 0.5);
             renderNextCard();
-            setupDragAndDrop();
+            setupInteractions();
         }
 
         function renderNextCard() {
@@ -186,19 +186,13 @@
             cardContainer.innerHTML = '';
 
             const card = document.createElement('div');
-            card.className = "absolute inset-0 bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center justify-between border border-slate-200 card-animation cursor-grab active:cursor-grabbing";
+            card.className = "absolute inset-0 bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center justify-between border border-slate-200 card-animation cursor-grab active:cursor-grabbing select-none";
             card.draggable = true;
             card.id = `card-${currentCard.id}`;
 
             updateCardContent(card);
-
-            card.addEventListener('dragstart', (e) => {
-                card.classList.add('opacity-50');
-            });
-
-            card.addEventListener('dragend', () => {
-                card.classList.remove('opacity-50');
-            });
+            setupTouchEvents(card);
+            setupDesktopDragEvents(card);
 
             cardContainer.appendChild(card);
         }
@@ -209,21 +203,87 @@
                     <span class="text-slate-400">ID: #${currentCard.id.toString().padStart(2, '0')}</span>
                     ${isSecondTry ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">재도전 기회!</span>' : ''}
                 </div>
-                <div class="text-7xl my-4 p-6 bg-slate-50 rounded-full border border-slate-100 transition-transform ${isSecondTry ? 'scale-90' : ''}">${currentCard.icon}</div>
-                <div class="text-center overflow-y-auto px-2">
-                    <h3 class="text-2xl font-bold text-slate-800 mb-2">${currentCard.name}</h3>
-                    <p class="text-slate-600 leading-relaxed text-sm">${currentCard.feature}</p>
+                <div class="text-6xl md:text-7xl my-3 p-5 md:p-6 bg-slate-50 rounded-full border border-slate-100 transition-transform ${isSecondTry ? 'scale-90' : ''}">${currentCard.icon}</div>
+                <div class="text-center overflow-y-auto px-2 max-h-[160px]">
+                    <h3 class="text-xl md:text-2xl font-bold text-slate-800 mb-1">${currentCard.name}</h3>
+                    <p class="text-slate-600 leading-relaxed text-xs md:text-sm">${currentCard.feature}</p>
                 </div>
-                <div class="w-full mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-400 font-medium">
-                    알맞은 분류군으로 드래그하세요
+                <div class="w-full mt-4 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 font-medium">
+                    상단 박스를 탭하거나 드래그하여 분류하세요
                 </div>
             `;
         }
 
-        function setupDragAndDrop() {
+        // 데스크톱 드래그 앤 드롭 설정
+        function setupDesktopDragEvents(card) {
+            card.addEventListener('dragstart', (e) => {
+                card.classList.add('opacity-50');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('opacity-50');
+            });
+        }
+
+        // 모바일 및 패드용 터치 드래그 이벤트 (바닐라 JS 완벽 구현)
+        function setupTouchEvents(card) {
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let isDragging = false;
+
+            card.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                isDragging = true;
+                
+                card.style.transition = 'none';
+                card.classList.add('scale-95');
+            }, { passive: true });
+
+            card.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                currentX = touch.clientX - startX;
+                currentY = touch.clientY - startY;
+
+                // 드래그 방향에 맞춰 약간 회전 효과(Tinder 스타일)를 주어 재미를 더합니다.
+                const rotation = currentX * 0.08;
+                card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotation}deg)`;
+            }, { passive: true });
+
+            card.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                card.classList.remove('scale-95');
+                card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+
+                const touch = e.changedTouches[0];
+                // 손가락을 뗀 좌표에 위치한 요소를 탐색합니다.
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                // 해당 요소가 분류군 슬롯(.kingdom-slot) 안이거나 그 자체인지 확인합니다.
+                const slot = targetElement ? targetElement.closest('.kingdom-slot') : null;
+
+                if (slot) {
+                    const targetKingdom = slot.dataset.kingdom;
+                    processClassification(targetKingdom);
+                } else {
+                    // 원래 위치로 원복
+                    card.style.transform = 'translate(0px, 0px) rotate(0deg)';
+                }
+            });
+        }
+
+        // 공통 이벤트 및 클릭/탭 분류 연동
+        function setupInteractions() {
             const slots = document.querySelectorAll('.kingdom-slot');
             
             slots.forEach(slot => {
+                // PC 마우스 드래그 오버용
                 slot.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     slot.classList.add('drag-over');
@@ -239,12 +299,19 @@
                     const targetKingdom = slot.dataset.kingdom;
                     processClassification(targetKingdom);
                 });
+
+                // ★ 태블릿/PC 모두 지원하는 탭/클릭 이벤트 추가
+                slot.addEventListener('click', () => {
+                    if (!currentCard) return;
+                    processClassification(slot.dataset.kingdom);
+                });
             });
         }
 
         function processClassification(targetKingdom) {
             const isCorrect = targetKingdom === currentCard.kingdom;
             const cardEl = document.querySelector('.card-animation');
+            if (!cardEl) return;
             
             if (isCorrect) {
                 const points = isSecondTry ? 5 : 10;
@@ -252,7 +319,7 @@
                 showToast(`✅ 정답! (+${points}점)`, "bg-green-500");
                 addToSlot(currentCard);
                 
-                cardEl.style.transform = 'scale(0) translateY(-100px)';
+                cardEl.style.transform = 'scale(0) translateY(-120px)';
                 cardEl.style.opacity = '0';
                 
                 completed++;
@@ -267,6 +334,8 @@
                     setTimeout(() => {
                         cardEl.classList.remove('shake');
                         updateCardContent(cardEl);
+                        // 제자리로 복구
+                        cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
                     }, 500);
                 } else {
                     showToast(`❌ 아쉽네요! 정답은 [${currentCard.kingdom}]입니다.`, "bg-rose-500");
@@ -279,11 +348,6 @@
                     setTimeout(renderNextCard, 500);
                 }
             }
-        }
-
-        function mobileClassify(kingdom) {
-            if (!currentCard) return;
-            processClassification(kingdom);
         }
 
         function addToSlot(species) {
@@ -308,7 +372,7 @@
 
         function showToast(msg, colorClass) {
             toast.innerText = msg;
-            toast.className = `fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold transition-opacity duration-300 pointer-events-none z-50 ${colorClass} opacity-100`;
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold transition-opacity duration-300 pointer-events-none z-50 shadow-lg ${colorClass} opacity-100`;
             
             setTimeout(() => {
                 toast.classList.replace('opacity-100', 'opacity-0');
