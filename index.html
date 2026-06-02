@@ -234,6 +234,7 @@
             let isDragging = false;
 
             card.addEventListener('touchstart', (e) => {
+                if (!currentCard) return; // 활성화된 카드가 없으면 터치 무시
                 const touch = e.touches[0];
                 startX = touch.clientX;
                 startY = touch.clientY;
@@ -244,35 +245,30 @@
             }, { passive: true });
 
             card.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
+                if (!isDragging || !currentCard) return;
                 const touch = e.touches[0];
                 currentX = touch.clientX - startX;
                 currentY = touch.clientY - startY;
 
-                // 드래그 방향에 맞춰 약간 회전 효과(Tinder 스타일)를 주어 재미를 더합니다.
                 const rotation = currentX * 0.08;
                 card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotation}deg)`;
             }, { passive: true });
 
             card.addEventListener('touchend', (e) => {
-                if (!isDragging) return;
+                if (!isDragging || !currentCard) return;
                 isDragging = false;
                 
                 card.classList.remove('scale-95');
                 card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
 
                 const touch = e.changedTouches[0];
-                // 손가락을 뗀 좌표에 위치한 요소를 탐색합니다.
                 const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                
-                // 해당 요소가 분류군 슬롯(.kingdom-slot) 안이거나 그 자체인지 확인합니다.
                 const slot = targetElement ? targetElement.closest('.kingdom-slot') : null;
 
                 if (slot) {
                     const targetKingdom = slot.dataset.kingdom;
                     processClassification(targetKingdom);
                 } else {
-                    // 원래 위치로 원복
                     card.style.transform = 'translate(0px, 0px) rotate(0deg)';
                 }
             });
@@ -283,9 +279,9 @@
             const slots = document.querySelectorAll('.kingdom-slot');
             
             slots.forEach(slot => {
-                // PC 마우스 드래그 오버용
                 slot.addEventListener('dragover', (e) => {
                     e.preventDefault();
+                    if (!currentCard) return;
                     slot.classList.add('drag-over');
                 });
 
@@ -300,15 +296,16 @@
                     processClassification(targetKingdom);
                 });
 
-                // ★ 태블릿/PC 모두 지원하는 탭/클릭 이벤트 추가
                 slot.addEventListener('click', () => {
-                    if (!currentCard) return;
+                    if (!currentCard) return; // 활성화된 카드가 없으면 탭 동작 차단
                     processClassification(slot.dataset.kingdom);
                 });
             });
         }
 
         function processClassification(targetKingdom) {
+            if (!currentCard) return; // 방어 코드: 카드가 없을 때는 실행하지 않음
+            
             const isCorrect = targetKingdom === currentCard.kingdom;
             const cardEl = document.querySelector('.card-animation');
             if (!cardEl) return;
@@ -334,7 +331,6 @@
                     setTimeout(() => {
                         cardEl.classList.remove('shake');
                         updateCardContent(cardEl);
-                        // 제자리로 복구
                         cardEl.style.transform = 'translate(0px, 0px) rotate(0deg)';
                     }, 500);
                 } else {
@@ -380,6 +376,7 @@
         }
 
         function showGameComplete() {
+            currentCard = null; // 모든 탐험이 끝났으므로 활성화된 카드를 완전히 제거
             cardContainer.classList.add('hidden');
             const completeEl = document.getElementById('game-complete');
             completeEl.classList.remove('hidden');
